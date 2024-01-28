@@ -4,7 +4,7 @@ using WebApplication2.Entities;
 
 namespace WebApplication2.Repositories.Abstracts;
 
-public interface IOrderRepository: IBaseRepository<Order>
+public interface IProductTransactionRepository : IBaseRepository<ProductTransaction>
 {
 }
 

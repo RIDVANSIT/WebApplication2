@@ -2,9 +2,14 @@
 
 namespace WebApplication2.Entities;
 
-public class Order: Entity<Guid>
+public class Order : Entity<Guid>
 {
-    public Guid ProductId { get; set; }
-    public Guid UserId { get; set; }
-    public int Quantity {  get; set; } 
+	public Guid UserId { get; set; }
+	public DateTime CreatedDate { get; set; }
+	public virtual User User {get;set;}
+	public virtual ICollection<OrderDetail> OrderDetails { get; set; }
+	public Order()
+	{
+		OrderDetails = new HashSet<OrderDetail>();
+	}
 }

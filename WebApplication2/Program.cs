@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using WebApplication2.Contexts;
 using WebApplication2.Repositories.Abstracts;
 using WebApplication2.Repositories.Concretes;
@@ -16,7 +16,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IProductTransactionRepository, ProductTransactionRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderDetailRepository, OrderDetailRepository>();
+builder.Services.AddScoped<IAccountTransactionRepository, AccountTransactionRepository>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -32,3 +35,4 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.Run();
+

@@ -1,32 +1,46 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using WebApplication2.DTOs;
 using WebApplication2.Entities;
 using WebApplication2.Repositories.Abstracts;
 using Microsoft.AspNetCore.Mvc;
-using WebApplication2.Repositories.Concretes;
-
+using Microsoft.EntityFrameworkCore;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace WebApplication2.Controllers;
 
-[Route("api/[controller]")] 
+[Route("api/[controller]")]
 public class OrdersController : Controller
 {
-    private IOrderRepository _orderRepository;
-    private IProductRepository _productRepository;
+    private readonly IOrderRepository _orderRepository;
+    private readonly IOrderDetailRepository _orderDetailRepository;
+    private readonly IProductTransactionRepository _productTransactionRepository;
 
-    public OrdersController(IOrderRepository userRepository)
+    public OrdersController(
+        IOrderRepository orderRepository,
+        IOrderDetailRepository orderDetailRepository,
+        IProductTransactionRepository productTransactionRepository
+        )
     {
-        _orderRepository = userRepository;
+        _orderRepository = orderRepository;
+        _orderDetailRepository = orderDetailRepository;
+        _productTransactionRepository = productTransactionRepository;
     }
 
     [HttpGet("GetAll")]
     public IActionResult GetAll()
     {
         return Ok(_orderRepository.GetAll());
+    }
+    [HttpGet("GetAllWithDetails")]
+    public IActionResult GetAllWithDetails()
+    {
+        return Ok(_orderRepository.GetAll(include: order =>
+        order.Include(o=>o.User)
+            .Include(o => o.OrderDetails).ThenInclude(od=>od.Product).ThenInclude(p=>p.Category)
+            .Include(o => o.OrderDetails).ThenInclude(od=>od.ProductTransaction)
+            )
+            
+       );
     }
 
     [HttpGet("GetById/{id}")]
@@ -36,30 +50,40 @@ public class OrdersController : Controller
     }
 
     [HttpPost("Add")]
-    public IActionResult Add([FromBody] Order order)
+    public IActionResult Add([FromBody] AddOrderDto addOrderDto)
     {
-       
-        var product = _productRepository.Get(p => p.Id == order.ProductId);
-
-        if (product == null)
+        if (addOrderDto.ProductTransactions.Count() == 0)
         {
-            return BadRequest("Product not found");
+            return BadRequest("Ürün listesi boş olamaz.");
         }
-
-        
-        if (product.StockAmount < order.Quantity)
+        if (addOrderDto.ProductTransactions.Where(t => t.Quantity == 0).Any())
         {
-            return BadRequest("Insufficient product quantity");
+            return BadRequest("Ürün adedi 0 adet olamaz. Lütfen ürün listesini kontrol ediniz.");
         }
-
-        
-        product.StockAmount -= order.Quantity;
-        _productRepository.Update(product);
-
-       
-        _orderRepository.Add(order);
-
-        return Ok(order);
+        var checkCounts=addOrderDto.ProductTransactions.Select(t =>
+            _productTransactionRepository.GetAll(pt => pt.ProductId == t.ProductId).Sum(transaction=>transaction.Quantity)-t.Quantity
+        ).Where(q=>q<0).Any();
+        if (checkCounts)
+        {
+            return BadRequest("Stokta yeteri kadar ürün yok.");
+        }
+        var addedOrder = _orderRepository.Add(new()
+        {
+            UserId=addOrderDto.UserId,
+            CreatedDate=DateTime.UtcNow
+        });
+        addOrderDto.ProductTransactions.ToList().ForEach(productTransaction =>
+        {
+            productTransaction.Quantity = productTransaction.Quantity > 0 ? -1*productTransaction.Quantity : productTransaction.Quantity;
+            var addedProductTransaction = _productTransactionRepository.Add(productTransaction);
+            _orderDetailRepository.Add(new()
+            {
+                OrderId= addedOrder.Id,
+                ProductId= productTransaction.ProductId,
+                ProductTransactionId= addedProductTransaction.Id
+            });
+        });
+        return Ok(addedOrder);
     }
 
     [HttpPut("Update")]
@@ -72,7 +96,8 @@ public class OrdersController : Controller
     public IActionResult Delete(Guid id)
     {
         var order = _orderRepository.Get(order => order.Id == id);
-        if (order == null) return BadRequest("User not found");
+        if (order == null) return BadRequest("Order not found");
         return Ok(_orderRepository.Delete(order));
     }
 }
+

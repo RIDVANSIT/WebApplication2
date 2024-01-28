@@ -6,9 +6,9 @@ using WebApplication2.Repositories.Abstracts;
 
 namespace WebApplication2.Repositories.Concretes;
 
-public class OrderRepository : BaseRepository<Order>,IOrderRepository
+public class ProductTransactionRepository : BaseRepository<ProductTransaction>, IProductTransactionRepository
 {
-    public OrderRepository(ExampleDbContext context) : base(context)
+    public ProductTransactionRepository(ExampleDbContext context) : base(context)
     {
     }
 }

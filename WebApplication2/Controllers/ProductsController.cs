@@ -7,8 +7,6 @@ using WebApplication2.Repositories.Abstracts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-using WebApplication2.Repositories.Concretes;
-
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace WebApplication2.Controllers;
@@ -60,3 +58,4 @@ public class ProductsController : Controller
         return Ok(_productRepository.Delete(product));
     }
 }
+
